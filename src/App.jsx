@@ -408,7 +408,7 @@ function CameraTab({ profile, onResult }) {
           ]}]
         : [{ role: "user", content: "Analiza una milanesa con papas fritas." }];
 
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/anthropic", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: ANALYZE_PROMPT, messages: msgs }),
       });
@@ -424,7 +424,7 @@ function CameraTab({ profile, onResult }) {
     setEstimating(true);
     setEstimated(false);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/anthropic", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514", max_tokens: 300,
