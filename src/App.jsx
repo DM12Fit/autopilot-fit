@@ -401,25 +401,18 @@ function CameraTab({ profile, onResult }) {
   const analyze = async () => {
     setPhase("analyzing");
     try {
-      const msgs = imageBase64
-        ? [{ role: "user", content: [
-            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: imageBase64 } },
-            { type: "text", text: `Analiza este alimento. Objetivo: ${profile.objetivo}. Calorías objetivo: ${calcTDEE(profile)} kcal.` }
-          ]}]
-        : [{ role: "user", content: "Analiza una milanesa con papas fritas." }];
-
+      const prompt = `${ANALYZE_PROMPT}\nObjetivo del usuario: ${profile.objetivo}. Calorías objetivo: ${calcTDEE(profile)} kcal.`;
       const res = await fetch("/api/anthropic", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: ANALYZE_PROMPT, messages: msgs }),
+        body: JSON.stringify({ prompt, imageBase64, mediaType: "image/jpeg" }),
       });
       const data = await res.json();
-      console.log("API response:", JSON.stringify(data).substring(0, 200));
-      if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-      const text = data.content?.map(b => b.text || "").join("") || "";
+      if (data.error) throw new Error(JSON.stringify(data.error));
+      const text = data.text || "";
       setResult(JSON.parse(text.replace(/```json|```/g, "").trim()));
     } catch(err) {
       console.error("API Error:", err);
-      setResult({ ...MOCK_RESULT, alimento: "⚠️ Error de conexión", decision: "Revisá tu conexión e intentá de nuevo.", alerta: "critico", mensaje_alerta: err.message || "No se pudo conectar con la IA" });
+      setResult({ ...MOCK_RESULT, alimento: "⚠️ Error", decision: "Revisá tu conexión e intentá de nuevo.", alerta: "critico", mensaje_alerta: err.message || "No se pudo conectar con la IA" });
     }
     setPhase("result");
   };
@@ -429,16 +422,14 @@ function CameraTab({ profile, onResult }) {
     setEstimating(true);
     setEstimated(false);
     try {
+      const prompt = `${ESTIMATE_PROMPT}\nAlimento: "${nombre}"`;
       const res = await fetch("/api/anthropic", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514", max_tokens: 300,
-          system: ESTIMATE_PROMPT,
-          messages: [{ role: "user", content: `Alimento: "${nombre}"` }],
-        }),
+        body: JSON.stringify({ prompt }),
       });
       const data = await res.json();
-      const text = data.content?.map(b => b.text || "").join("") || "";
+      if (data.error) throw new Error(JSON.stringify(data.error));
+      const text = data.text || "";
       const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
       setManual(m => ({ ...m, calorias: String(parsed.calorias), proteinas: String(parsed.proteinas), carbohidratos: String(parsed.carbohidratos), grasas: String(parsed.grasas), emoji: parsed.emoji || "🍽️" }));
       setConfianza(parsed.confianza);
