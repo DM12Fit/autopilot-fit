@@ -413,9 +413,14 @@ function CameraTab({ profile, onResult }) {
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: ANALYZE_PROMPT, messages: msgs }),
       });
       const data = await res.json();
+      console.log("API response:", JSON.stringify(data).substring(0, 200));
+      if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
       const text = data.content?.map(b => b.text || "").join("") || "";
       setResult(JSON.parse(text.replace(/```json|```/g, "").trim()));
-    } catch { setResult(MOCK_RESULT); }
+    } catch(err) {
+      console.error("API Error:", err);
+      setResult({ ...MOCK_RESULT, alimento: "⚠️ Error de conexión", decision: "Revisá tu conexión e intentá de nuevo.", alerta: "critico", mensaje_alerta: err.message || "No se pudo conectar con la IA" });
+    }
     setPhase("result");
   };
 
@@ -438,8 +443,8 @@ function CameraTab({ profile, onResult }) {
       setManual(m => ({ ...m, calorias: String(parsed.calorias), proteinas: String(parsed.proteinas), carbohidratos: String(parsed.carbohidratos), grasas: String(parsed.grasas), emoji: parsed.emoji || "🍽️" }));
       setConfianza(parsed.confianza);
       setEstimated(true);
-    } catch {
-      // fallback silencioso
+    } catch(err) {
+      console.error("Estimate error:", err);
     }
     setEstimating(false);
   };
